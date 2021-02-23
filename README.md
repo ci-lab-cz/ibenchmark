@@ -11,10 +11,15 @@ There are six synthetic datasets with pre-defined patterns determining end-point
 These data sets are purposed for evaluation of interpretation approaches which estimate atom or fragment contributions (attributions) by comparing calculated contributions of atoms or fragments with expected values. The source of compounds was the ChEMBL23 database. Structures were standardized and duplicates were removed. End-point values were assigned to compounds according to rules defined below. Compounds were randomly sampled from whole ChEMBL set until the desired data set size was achieved. Distribution of end-point values was controlled for being balanced (classification) or close to normal (regression). All atoms in each molecule were assigned “ground truth” labels, i.e. expected contributions.
 
 **N dataset**. The end-point was the sum of nitrogen atoms. Thus, the expected contributions of nitrogen atoms were 1 and all other atoms - 0.  
+
 **N-O dataset**. The end-point was the sum of nitrogen atoms minus the sum of oxygen atoms. Thus, oxygen represented a negatively contributing pattern. Expected contribution of any nitrogen was 1, any oxygen -1, and all others 0.  
+
 **N+O dataset**. The end-point was the sum of nitrogen and oxygen atoms divided by two. The number of nitrogen and oxygen atoms in each molecule was strictly equal. Thus, two positively contributing patterns were co-occurring and both contributed equally to the target property. This represents a specific case to verify how a model treats correlated patterns and how this affects interpretation output.  
+
 **Amide dataset** represented additive end-point depending on local chemical context. The end-point  was the number of amide groups encoded with SMARTS NC=O.  This end-point was similar to properties like lipophilicity, polar surface area, etc. This was a regression task.  
+
 **Amide_class dataset** was a classification one, where compounds were assigned active if they had at least one amide pattern and inactive otherwise. The expected contribution of any atom of an amide group for either data set was 1, because upon removing of such an atom the whole pattern disappears.  
+
 **Pharmacophore dataset** was designed based on a pharmacophore hypothesis and represents property, depending on whole-molecule context. Compounds were labeled as active if at least one of their conformers had a pair of an H-bond donor and an H-bond acceptor 9-10 Å apart. If the pattern occurred in more than one conformer of a molecule, this had to be the same pair of atoms. Therefore, actives contained the same pharmacophore pair consistent across all conformers. If this pattern was absent in all conformers a compound was labeled inactive. We generated up to 25 conformers for each compound using RDKit.
 
 ### Description of metrics.py  
