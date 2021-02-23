@@ -7,9 +7,9 @@ There are six synthetic datasets with pre-defined patterns being end-point value
 *N dataset*. The end-point was the sum of nitrogen atoms. Thus, the expected contributions of nitrogen atoms were 1 and all other atoms - 0.
 *N-O dataset*. The end-point was the sum of nitrogen atoms minus the sum of oxygen atoms. Thus, oxygen represented a negatively contributing pattern. Expected contribution of any nitrogen was 1, any oxygen -1, and all others 0.
 *N+O dataset*. The end-point was the sum of nitrogen and oxygen atoms divided by two. The number of nitrogen and oxygen atoms in a molecule was strictly equal. Thus, two positively contributing patterns were co-occurring and both contributed equally to the target property. This represents a specific case to verify how a model treats correlated patterns and how this affects interpretation output.
-*Amide dataset*. represented additive end-point depending on local chemical context. The end-point  was the number of amide groups encoded with SMARTS NC=O.  This end-point was similar to properties like lipophilicity, polar surface area, etc. This was a regression task.
+*Amide dataset* represented additive end-point depending on local chemical context. The end-point  was the number of amide groups encoded with SMARTS NC=O.  This end-point was similar to properties like lipophilicity, polar surface area, etc. This was a regression task.
 *Amide_class dataset* was a classification one, where compounds were assigned active if they had at least one amide pattern and inactive otherwise. The expected contribution of any atom of an amide group for either data set was 1, because upon removing of such an atom the whole pattern disappears.
-*Pharmacophore dataset* data set was designed based on a pharmacophore hypothesis and represents property, depending on whole-molecule context. Compounds were labeled as active if at least one of their conformers had a pair of an H-bond donor and an H-bond acceptor 9-10 Å apart. If the pattern occurred in more than one conformer of a molecule, this had to be the same pair of atoms. Therefore, actives contained the same pharmacophore pair consistent across all conformers. If this pattern was absent in all conformers a compound was labeled inactive. We generated up to 25 conformers for each compound using RDKit. 
+*Pharmacophore dataset* was designed based on a pharmacophore hypothesis and represents property, depending on whole-molecule context. Compounds were labeled as active if at least one of their conformers had a pair of an H-bond donor and an H-bond acceptor 9-10 Å apart. If the pattern occurred in more than one conformer of a molecule, this had to be the same pair of atoms. Therefore, actives contained the same pharmacophore pair consistent across all conformers. If this pattern was absent in all conformers a compound was labeled inactive. We generated up to 25 conformers for each compound using RDKit.
 
 
 **Description of metrics.py**
@@ -35,4 +35,4 @@ For *AUC_negative* ground truth label is set to -1 for positive atoms and 0 for 
 E.g.  for a molecule with 2 positive atoms *n = 2*. This metric is aggregated in a  cumulative  way: sum over all numerators for molecules is dividded by sum over denominators.
 **Bottom_n**. Defined analogously to *top_n*. Sorting order is inverse.
 
-**RMSE**. *Root Mean Squared Error* between observed (ground truth) and predicted (contributions) values. Aggregated by *mean*.
+**RMSE**. *Root mean squared error* between observed (ground truth) and predicted (contributions) values. Aggregated by *mean*.
