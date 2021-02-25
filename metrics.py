@@ -33,10 +33,12 @@ def calc_auc(merged_df,
 def merge_lbls_contribs(contribs, lbls, lbl_col_name="lbl"):
     merged_df = pd.merge(
         contribs, lbls,
-        how="left")  # left join: all atoms with contribs will be used
-    merged_df.loc[
-        pd.isna(merged_df[lbl_col_name]),
-        lbl_col_name] = 0  # set zero lbl to atoms missing in ids table
+        how="inner")
+    # next lines potentially lead to incorrect rmsd if setdiff(mols_from_contribs, mols_from_sdf)>0!
+        # how="left")  # left join: all atoms with contribs will be used
+    # merged_df.loc[
+    #     pd.isna(merged_df[lbl_col_name]),
+    #     lbl_col_name] = 0  # set zero lbl to atoms missing in ids table
 
     return merged_df
 
@@ -277,6 +279,12 @@ if __name__ == '__main__':
         metavar='out.txt',
         required=True,
         help='output file name (with path)')
+    parser.add_argument(
+        '--per_molecule_metrics_fname',
+        required=False,
+        metavar='per_mol.txt',
+        default=None,
+        help='Should metrics for each molecule be returned, or only aggregated values per dataset? If yes,please provide a filename')
 
     args = vars(parser.parse_args())
     for o, v in args.items():
@@ -287,26 +295,29 @@ if __name__ == '__main__':
         if o == "sep_for_lbls": sep_for_lbls = v
         if o == "metrics": metrics = v
         if o == "output_fname": output_fname = v
+        if o == "per_molecule_metrics_fname": per_mol_fname = v
 
     lbls = read_lbls_from_sdf(
         sdf_fname, lbls_field_name=lbls_field, sep=sep_for_lbls)
     contribs = read_contrib(contrib_fname)
-    # contribs = read_contrib_spci(contrib_fname)["overall"]
+    # contribs = read_contrib_spci(contrib_fname)["overall"] # spci input
     merged = merge_lbls_contribs(contribs, lbls)
     auc_ind = sum(["AUC" in i for i in metrics])
     top_ind = sum([("Top" in i or "Bottom" in i) for i in metrics])
     rmse_ind = ("RMSE" in metrics)
     metr = []
-    for m in metrics:
-        if auc_ind:
+
+    if auc_ind:
             which_lbls = [i[4:] for i in metrics if "AUC" in i]
             auc = calc_auc(
                 merged, which_lbls=which_lbls, contrib_col_name=contrib_col)
+            print("calculated auc")
             metr.append(auc)
-        if rmse_ind:
+    if rmse_ind:
             rmse = calc_rmse(merged, contrib_col_name=contrib_col)
+            print("calculated rmse")
             metr.append(rmse)
-        if top_ind:
+    if top_ind:
             n_list_1 = [i[4:] for i in metrics if "Top" in i]
             n_list_1 = [float(i) if i != "n" else np.inf for i in n_list_1]
             n_list_2 = [i[7:] for i in metrics if "Bottom" in i]
@@ -316,7 +327,27 @@ if __name__ == '__main__':
             baseline = calc_baseline(merged)
             top_n = calc_top_n(
                 merged, n_list=n_list_1, contrib_col_name=contrib_col)
+            print("acalculated baseline, top_n")
             metr.extend([baseline, top_n])
+    if per_mol_fname is not None:
+        fin = None
+        # print(len(metr))
+        for i in metr:
 
+            for k,v in i.items():
+                if ("select" not in k) and ("baseline" not in k):
+                    if fin is  None:
+                        if isinstance(v, pd.DataFrame):
+                            v = v.iloc[:, 0]  # case when v is not series but DF : drop top_sum
+                        fin = pd.Series(v, name=k)
+                    else:
+                        # print(type(v))
+                        if isinstance(v, pd.DataFrame):
+                            v = v.iloc[:,0] # case when v is not series but DF : drop top_sum
+                        # print(k,v)
+                        tmp = pd.Series(v, name=k)
+                        fin = pd.merge(fin, tmp, how="outer", right_index=True, left_index=True)
+                        # print(fin)
+        pd.DataFrame(fin).to_csv(per_mol_fname, sep = "\t")
     res = summarize(metr)
-    pd.DataFrame(res, index=[0]).to_csv(output_fname)
+    pd.DataFrame(res, index=[0]).to_csv(output_fname, sep = "\t")
