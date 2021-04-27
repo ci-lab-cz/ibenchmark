@@ -38,3 +38,13 @@ E.g.  for a molecule with 2 positive atoms *n = 2*. This metric is aggregated in
 **Bottom_n** defined analogously to *top_n* but performance is calculated for negatively contributed atoms.
 
 **RMSE**. *Root mean squared error* between observed (ground truth) and predicted (contributions) values. Aggregated by *mean*.
+
+## Examples
+To perform metrics calculation for the whole dataset, run the script with your files, for example:
+
+python metrics.py  --contrib_fname example_notebook_data/contrib_per_atom_dc.txt   --sdf_fname  example_notebook_data/N_train_lbl.sdf --contrib_col contribution  --lbls_field lbls --metrics AUC_positive --output_fname example_notebook_data/out.txt
+
+To perform metrics calculation per molecule, add key --per_molecule_metrics_fname, e.g:
+python metrics.py  --contrib_fname example_notebook_data/contrib_per_atom_dc.txt   --sdf_fname  example_notebook_data/N_train_lbl.sdf --contrib_col contribution  --lbls_field lbls --metrics AUC_positive --output_fname example_notebook_data/out.txt --per_molecule_metrics_fname example_notebook_data/per_mol_out.txt
+
+Alternatively, you can use functions from the script in your own pipelines, example is given in *metrics_for_individual_molecules.ipynb*
