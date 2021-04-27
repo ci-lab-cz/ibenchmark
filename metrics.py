@@ -100,7 +100,7 @@ def read_contrib_spci(fname,
 
 
 def read_contrib(contrib, sep=","):
-    contrib = pd.read_csv(contrib, sep=sep)
+    contrib = pd.read_csv(contrib,sep=sep)
     return contrib
 
 
@@ -148,7 +148,7 @@ def read_lbls_from_sdf(input_sdf, lbls_field_name="lbls", sep=","):
                     sep)  # convert to str to use split
                 res.extend([[mol.GetProp("_Name"), i + 1,
                              int(j)] for i, j in enumerate(lbls)
-                            if (lbls[0] != "")])
+                            if (lbls[0] != "NA")])
             else:
                 print("warning: bad field_name")
 
@@ -235,7 +235,7 @@ if __name__ == '__main__':
         metavar='contrib.txt',
         required=True,
         help=
-        'File name (with full path) for contributions.Should contain at least these colums: molecule, atom, contribution'
+        'File name (with full path) for contributions.Should contain at least these columns (named): molecule, atom, contribution'
     )
     parser.add_argument(
         '--sdf_fname',
