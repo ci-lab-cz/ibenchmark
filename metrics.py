@@ -34,7 +34,9 @@ def merge_lbls_contribs(contribs, lbls, lbl_col_name="lbl"):
     merged_df = pd.merge(
         contribs, lbls,
         how="inner")
-    # next lines potentially lead to incorrect rmsd if setdiff(mols_from_contribs, mols_from_sdf)>0!
+    # next lines (left join) potentially lead to incorrect rmse if setdiff(mols_from_contribs, mols_from_sdf)>0!
+    # because if SOME ATOMS of given mol aren't in sdf - we mustnot use their contribs, they maybe nonexisitng atoms!
+    # however, in this case (inner join) only molecules with labels for all atoms, ie not NA,will be used
         # how="left")  # left join: all atoms with contribs will be used
     # merged_df.loc[
     #     pd.isna(merged_df[lbl_col_name]),
@@ -209,14 +211,14 @@ def calc_top_n(merged_df,
             res["select_top_sum"+str(n)] = merged_df.groupby(by="molecule").apply(lambda gr: gr.nlargest(int(min(n,gr.top_sum.unique())),
                                          contrib_col_name, keep="all"))
             res["select_top_sum" + str(n)].reset_index(drop=True, inplace=True)
-            res["top_sum" + str(n)] = get_summary(
+            res["top" + str(n)] = get_summary(
                 res["select_top_sum" + str(n)], True)
         elif n < 0:
             res["select_bottom_sum"+str(-n)] = merged_df.groupby(by="molecule").apply(lambda gr: gr.nsmallest(int(min(-n, gr.bottom_sum.unique())),
                                           contrib_col_name, keep="all"))
             res["select_bottom_sum" + str(-n)].reset_index(
                 drop=True, inplace=True)
-            res["bottom_sum" + str(-n)] = get_summary(
+            res["bottom" + str(-n)] = get_summary(
                 res["select_bottom_sum" + str(-n)], False)
     return res
 
@@ -327,7 +329,7 @@ if __name__ == '__main__':
             baseline = calc_baseline(merged)
             top_n = calc_top_n(
                 merged, n_list=n_list_1, contrib_col_name=contrib_col)
-            print("acalculated baseline, top_n")
+            print("acalculated baseline, top_n (bottom_n)")
             metr.extend([baseline, top_n])
     if per_mol_fname is not None:
         fin = None
