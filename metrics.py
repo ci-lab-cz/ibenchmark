@@ -6,6 +6,7 @@ import numpy as np
 from collections import Counter, defaultdict
 from sklearn.metrics import roc_auc_score, mean_squared_error
 import argparse
+import re
 
 
 def calc_auc(merged_df,
@@ -337,7 +338,7 @@ if __name__ == '__main__':
             baseline = calc_baseline(merged)
             top_n = calc_top_n(
                 merged, n_list=n_list_1, contrib_col_name=contrib_col)
-            print("acalculated baseline, top_n (bottom_n)")
+            print("calculated baseline, top_n (bottom_n)")
             metr.extend([baseline, top_n])
     if per_mol_fname is not None:
         fin = None
