@@ -50,8 +50,8 @@ def read_contrib_spci(fname,
                       min_M=10,
                       min_N=10,
                       contr_names="overall",
-                      mol_frag_sep="###"):
-
+                      mol_frag_sep="###",
+                      frag=False):
     d = defaultdict(dict)
     res = {}
 
@@ -63,6 +63,7 @@ def read_contrib_spci(fname,
         frag_mol_count = defaultdict(int)
         frag_names = []
         mol_names = []
+        FragUID = []
         for n in names:
             mol_name, frag_name = n.split(mol_frag_sep)
             frag_mol_count[frag_name] += 1
@@ -74,14 +75,16 @@ def read_contrib_spci(fname,
         # create new fragment names and create list of filtered indices (according to min_M and min_N)
         keep_ids = []
         for i, v in enumerate(frag_names):
-            frag_names[i] = frag_names[i].split("#")[0]
+            FragUID.append(re.search("#\d+$", frag_names[i]).group(0)[1:])
 
+            frag_names[i] = re.sub("#\d+$", "", frag_names[i])
             if frag_mol_count[v] >= min_M and frag_count[v] >= min_N:
                 keep_ids.append(i)
 
         # filter out frag_names by keep_ids
         frag_names = [frag_names[i] for i in keep_ids]
         mol_names = [mol_names[i] for i in keep_ids]
+        FragUID = [FragUID[i] for i in keep_ids]
 
         for line in f:
             tmp = line.strip().split('\t')
@@ -96,7 +99,12 @@ def read_contrib_spci(fname,
                 d[prop_name][model_name] = values
         for i, v in d.items():
             res[i] = pd.DataFrame(v)
-            res[i]["atom"] = list(map(int, frag_names))
+            if not frag:
+                res[i]["atom"] = list(map(int, frag_names))
+            else:
+                res[i]["frag"] = list(frag_names)
+                res[i]["FragUID"] = list(map(int, FragUID))
+
             res[i]["molecule"] = mol_names
     return res
 
