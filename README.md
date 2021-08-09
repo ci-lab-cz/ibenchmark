@@ -48,3 +48,11 @@ To additionally perform metrics calculation per molecule, add key `--per_molecul
  ```python metrics.py  --contrib_fname example_notebook_data/N_contrib_per_atom_dc.txt   --sdf_fname  example_notebook_data/N_train_lbl_small.sdf --contrib_col contribution  --lbls_field lbls --metrics Top_n --output_fname example_notebook_data/out.txt --per_molecule_metrics_fname example_notebook_data/per_mol_out.txt```
 
 Alternatively, you can use functions from the script in your own pipelines, example is given in *example_notebook.ipynb*
+
+**Rerefence to interpretation of graph convolution models**  
+https://github.com/deepchem/deepchem/blob/master/examples/tutorials/28_Atomic_Contributions_for_Molecules.ipynb
+
+### Citation
+Matveieva, M.; Polishchuk, P.  
+Benchmarks for interpretation of QSAR models  
+Journal of Cheminformatics **2021**, 13, 41. https://dx.doi.org/10.1186/s13321-021-00519-x
