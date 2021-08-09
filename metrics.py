@@ -257,8 +257,8 @@ if __name__ == '__main__':
     parser.add_argument(
         '--remove_eq',
         required=False,
-        default=True,
-        help=''
+        default=0,
+        help='Should equivalent atoms (by Canonical rank without chirality/isotope considerations) be filtered out (keep only one)?'
     )
     parser.add_argument(
         '--lbls_field',
@@ -310,7 +310,7 @@ if __name__ == '__main__':
         if o == "contrib_fname": contrib_fname = v
         if o == "sdf_fname": sdf_fname = v
         if o == "contrib_col": contrib_col = v
-        if o == "remove_eq": remove_eq = v
+        if o == "remove_eq": remove_eq = bool(int(v))
         if o == "lbls_field": lbls_field = v
         if o == "act_field": act_field = v
         if o == "sep_for_lbls": sep_for_lbls = v
@@ -320,8 +320,8 @@ if __name__ == '__main__':
 
     lbls = read_lbls_from_sdf(
         sdf_fname, lbls_field_name=lbls_field,act_field_name=act_field, sep=sep_for_lbls, find_eq=remove_eq)
-    # contribs = read_contrib(contrib_fname)
-    contribs = read_contrib_spci(contrib_fname)["overall"] # spci input
+    contribs = read_contrib(contrib_fname)
+    # contribs = read_contrib_spci(contrib_fname)["overall"] # spci input
     merged = merge_lbls_contribs(contribs, lbls)
     # print(merged.head(55))
     if remove_eq:

@@ -42,13 +42,11 @@ def read_contrib_spci(fname,
                     continue
                 if "all" in model_names or model_name in model_names:
                     values = list(map(float, tmp[1:]))
-                    # filter out values by keep_ids
-                    values = [values[i] for i in keep_ids]
                     d[prop_name][model_name] = values
             else: # line with relative frag size
                 if filter_rel_frag_size < 1:
                     rel_frag_size =  list(map(float, tmp[1:]))
-                    rel_frag_size = [rel_frag_size[i] for i in keep_ids]
+        
 
         for i, v in d.items():
             res[i] = pd.DataFrame(v)
