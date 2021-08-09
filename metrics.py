@@ -7,6 +7,7 @@ from collections import Counter, defaultdict
 from sklearn.metrics import roc_auc_score, mean_squared_error
 import argparse
 import re
+from utils import read_contrib_spci
 
 
 def calc_auc(merged_df,
@@ -45,86 +46,51 @@ def merge_lbls_contribs(contribs, lbls, lbl_col_name="lbl"):
 
     return merged_df
 
-
-def read_contrib_spci(fname,
-                      model_names=("gbm", "svm", "rf", "pls"),
-                      min_M=10,
-                      min_N=10,
-                      contr_names="overall",
-                      mol_frag_sep="###",
-                      frag=False):
-    d = defaultdict(dict)
-    res = {}
-
-    with open(fname) as f:
-
-        names = f.readline().strip().split('\t')[1:]
-
-        # count number of molecules for each fragment
-        frag_mol_count = defaultdict(int)
-        frag_names = []
-        mol_names = []
-        FragUID = []
-        for n in names:
-            mol_name, frag_name = n.split(mol_frag_sep)
-            frag_mol_count[frag_name] += 1
-            frag_names.append(frag_name)
-            mol_names.append(mol_name)
-        # count number of each fragment
-        frag_count = Counter(frag_names)
-
-        # create new fragment names and create list of filtered indices (according to min_M and min_N)
-        keep_ids = []
-        for i, v in enumerate(frag_names):
-            FragUID.append(re.search("#\d+$", frag_names[i]).group(0)[1:])
-
-            frag_names[i] = re.sub("#\d+$", "", frag_names[i])
-            if frag_mol_count[v] >= min_M and frag_count[v] >= min_N:
-                keep_ids.append(i)
-
-        # filter out frag_names by keep_ids
-        frag_names = [frag_names[i] for i in keep_ids]
-        mol_names = [mol_names[i] for i in keep_ids]
-        FragUID = [FragUID[i] for i in keep_ids]
-
-        for line in f:
-            tmp = line.strip().split('\t')
-            model_name, prop_name = tmp[0].rsplit("_", 1)
-            # skip contributions which are not selected
-            if prop_name not in contr_names:
-                continue
-            if "all" in model_names or model_name in model_names:
-                values = list(map(float, tmp[1:]))
-                # filter out values by keep_ids
-                values = [values[i] for i in keep_ids]
-                d[prop_name][model_name] = values
-        for i, v in d.items():
-            res[i] = pd.DataFrame(v)
-            if not frag:
-                res[i]["atom"] = list(map(int, frag_names))
-            else:
-                res[i]["frag"] = list(frag_names)
-                res[i]["FragUID"] = list(map(int, FragUID))
-
-            res[i]["molecule"] = mol_names
-    return res
-
-
 def read_contrib(contrib, sep=","):
     contrib = pd.read_csv(contrib,sep=sep)
     return contrib
 
 
-def calc_baseline(merged_df, top=True, bottom=True, lbl_col_name="lbl"):
-    res = {}
-    if top:
-        res["baseline_top"] = sum(merged_df[lbl_col_name] > 0) / len(
-            merged_df[lbl_col_name])
-    if bottom:
-        res["baseline_bottom"] = sum(merged_df[lbl_col_name] < 0) / len(
-            merged_df[lbl_col_name])
-    return res
+# version with  averging of individual molecules expected p
+# smapling of atoms  with replacement is accounted for, but it doesnt change formula for variable top_n logic,
+# because n=K for hypergeometric distr (see wiki)
+# def calc_baseline(merged_df, top=True, bottom=True, lbl_col_name="lbl", act_field_name=None):
+#
+#
+#
+#     res = {}
+#     if act_field_name is not None:
+#         mask = merged_df[act_field_name]
+#     else:
+#         mask = [True] * merged_df.shape[0]
+#         print("Warning: baseline will be calculated for all molecules, may be incorrect when some mols dont have any labelled atoms!")
+#     if top:
+#         res["baseline_top"] = np.mean(merged_df.loc[mask,:].groupby(by="molecule").apply(lambda gr:sum(gr[lbl_col_name] > 0) / len(
+#             gr[lbl_col_name])))
+#     if bottom:
+#         res["baseline_bottom"] = np.mean(merged_df.loc[mask,:].groupby(by="molecule").apply(lambda gr:sum(gr[lbl_col_name] < 0) / len(
+#             gr[lbl_col_name])))
+#     return res
 
+# version with flat baseline calulation, less correct then averging of individual molecules p.
+# smapling of atoms  with replacement is accounted for explicitly
+def calc_baseline(merged_df, top=True, bottom=True, lbl_col_name="lbl", act_field_name=None):
+    res = {}
+
+    if act_field_name is not None:
+        mask = merged_df[act_field_name]
+    else:
+        mask = [True] * merged_df.shape[0]
+        print("Warning: baseline will be calculated for all molecules, may be incorrect when some mols dont have any labelled atoms!")
+
+    if top:
+        # res = sum(n*k/N) / sum(n), where n=k number of true atoms in a mol, N=number of atoms in a mol
+         res["baseline_top"] = np.sum(merged_df.loc[mask, :].groupby(by="molecule").apply(lambda gr: (sum(gr[lbl_col_name] > 0)**2 )/ len(
+                      gr[lbl_col_name]))) /(np.sum(merged_df.loc[mask][lbl_col_name] > 0)+0.0000001) # zerodivision corr.
+    if bottom:
+         res["baseline_bottom"] = np.sum(merged_df.loc[mask, :].groupby(by="molecule").apply(lambda gr: (sum(gr[lbl_col_name] < 0)**2 )/ len(
+                      gr[lbl_col_name]))) / (np.sum(merged_df.loc[mask][lbl_col_name] < 0)+0.0000001)# zerodivision corr.
+    return res
 
 def summarize(data):
     res = {}
@@ -147,25 +113,51 @@ def calc_rmse(merged_df, contrib_col_name="contrib", lbl_col_name="lbl"):
     return {"rmse":merged_df.groupby(by="molecule").apply(lambda gr: np.sqrt(mean_squared_error(gr[lbl_col_name], gr[contrib_col_name])))}
 
 
-def read_lbls_from_sdf(input_sdf, lbls_field_name="lbls", sep=","):
+def read_lbls_from_sdf(input_sdf, lbls_field_name="lbls",act_field_name=None, sep=",", find_eq=True):
+
+    def ranks(m):
+        r = []
+        for i,j in enumerate(list(Chem.CanonicalRankAtoms(m, breakTies=False, includeChirality=False,includeIsotopes=False))):
+            r.append([mol.GetProp("_Name"), i+1,j]) # 1based!
+        return r
+
     # ids are one based
     res = []  # 1 based
+    rnks_all = []
     sdf = Chem.SDMolSupplier(input_sdf)
-    for mol in sdf:
+    for mol in sdf: # loop over mols
         if mol is not None:
+            rnks = ranks(mol)
+            rnks_all.extend(rnks)
             props = mol.GetPropsAsDict()
-            if lbls_field_name in props:
+            if act_field_name is not None: # readout activity T/F for this mol
+                if act_field_name in props:
+                    act_tmp = bool(int(props[act_field_name]))
+                else:
+                    print("warning: bad activity field name.SDF was not read")
+                    return None
+
+            if lbls_field_name in props: # readout lblbs for this mol
                 lbls = str(props[lbls_field_name]).split(
                     sep)  # convert to str to use split
-                res.extend([[mol.GetProp("_Name"), i + 1,
-                             int(j)] for i, j in enumerate(lbls)
-                            if (lbls[0] != "NA")])
+
+                if (lbls[0] != "NA"):
+                    for i, j in enumerate(lbls): # loop over atoms and add to big list their labels with mol name and act
+                        res.append([mol.GetProp("_Name"), i + 1, # 1-based
+                             int(j), act_tmp])
+
             else:
-                print("warning: bad field_name")
+                print("warning: bad labels field_name.SDF was not read")
+                return None
 
-    res = pd.DataFrame(res, columns=["molecule", "atom", "lbl"])
+    res = pd.DataFrame(res)
+
+    if len(res.columns) == 3: res.columns = ["molecule", "atom", "lbl"]
+    if len(res.columns) == 4: res.columns = ["molecule", "atom", "lbl", act_field]
+    if rnks_all:
+        res = pd.merge(res,pd.DataFrame(rnks_all, columns=["molecule", "atom", "rank"]))
+    # print(res.head(55))
     return res
-
 
 def calc_top_n(merged_df,
                n_list=(-np.inf, np.inf, 3, 5, -3, -5),
@@ -263,12 +255,28 @@ if __name__ == '__main__':
         help='Column name in contributions file, where contributions are given'
     )
     parser.add_argument(
+        '--remove_eq',
+        required=False,
+        default=True,
+        help=''
+    )
+    parser.add_argument(
         '--lbls_field',
         metavar='lbls',
         required=False,
         default="lbls",
         help=
         'field name in sdf file, where ground truth labels of all atoms are given (without explicit atom numbers, atom order must hold)'
+    )
+
+    parser.add_argument(
+        '--act_field',
+        metavar='act',
+        required=False,
+        default=None,
+        help=
+        'field name in sdf file, where activities (int type) of molecules are given (optional).Needed only'
+        'to correctly calculate baseline'
     )
     parser.add_argument(
         '-sep_for_lbls',
@@ -302,17 +310,23 @@ if __name__ == '__main__':
         if o == "contrib_fname": contrib_fname = v
         if o == "sdf_fname": sdf_fname = v
         if o == "contrib_col": contrib_col = v
+        if o == "remove_eq": remove_eq = v
         if o == "lbls_field": lbls_field = v
+        if o == "act_field": act_field = v
         if o == "sep_for_lbls": sep_for_lbls = v
         if o == "metrics": metrics = v
         if o == "output_fname": output_fname = v
         if o == "per_molecule_metrics_fname": per_mol_fname = v
 
     lbls = read_lbls_from_sdf(
-        sdf_fname, lbls_field_name=lbls_field, sep=sep_for_lbls)
-    contribs = read_contrib(contrib_fname)
-    # contribs = read_contrib_spci(contrib_fname)["overall"] # spci input
+        sdf_fname, lbls_field_name=lbls_field,act_field_name=act_field, sep=sep_for_lbls, find_eq=remove_eq)
+    # contribs = read_contrib(contrib_fname)
+    contribs = read_contrib_spci(contrib_fname)["overall"] # spci input
     merged = merge_lbls_contribs(contribs, lbls)
+    # print(merged.head(55))
+    if remove_eq:
+        merged = merged.drop_duplicates(["molecule", "rank"])
+    # print(merged.head(55))
     auc_ind = sum(["AUC" in i for i in metrics])
     top_ind = sum([("Top" in i or "Bottom" in i) for i in metrics])
     rmse_ind = ("RMSE" in metrics)
@@ -335,7 +349,7 @@ if __name__ == '__main__':
             n_list_2 = [-float(i) if i != "n" else -np.inf for i in n_list_2]
             n_list_1.extend(n_list_2)
 
-            baseline = calc_baseline(merged)
+            baseline = calc_baseline(merged, act_field_name=act_field)
             top_n = calc_top_n(
                 merged, n_list=n_list_1, contrib_col_name=contrib_col)
             print("calculated baseline, top_n (bottom_n)")
