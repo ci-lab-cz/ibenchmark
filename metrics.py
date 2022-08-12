@@ -238,7 +238,8 @@ if __name__ == '__main__':
         metavar='contrib.txt',
         required=True,
         help=
-        'File name (with full path) for contributions.Should contain at least these columns (named): molecule, atom, contribution'
+        'File name (with full path) for contributions.Should contain at least these columns (named): "molecule", "atom", "contribution". Atom: '
+        '1-based atom numbers; must be consistent with order of atoms in sdf. Molecule: molecule name. Contribtuion: numeric value of atom contributions
     )
     parser.add_argument(
         '--sdf_fname',
@@ -323,7 +324,6 @@ if __name__ == '__main__':
     contribs = read_contrib(contrib_fname)
     # contribs = read_contrib_spci(contrib_fname)["overall"] # spci input
     merged = merge_lbls_contribs(contribs, lbls)
-    # print(merged.head(55))
     if remove_eq:
         merged = merged.drop_duplicates(["molecule", "rank"])
     # print(merged.head(55))
