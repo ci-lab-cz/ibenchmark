@@ -127,6 +127,7 @@ def read_lbls_from_sdf(input_sdf, lbls_field_name="lbls",act_field_name=None, se
     sdf = Chem.SDMolSupplier(input_sdf)
     for mol in sdf: # loop over mols
         if mol is not None:
+            act_tmp = None # none default
             rnks = ranks(mol)
             rnks_all.extend(rnks)
             props = mol.GetPropsAsDict()
@@ -143,8 +144,13 @@ def read_lbls_from_sdf(input_sdf, lbls_field_name="lbls",act_field_name=None, se
 
                 if (lbls[0] != "NA"):
                     for i, j in enumerate(lbls): # loop over atoms and add to big list their labels with mol name and act
-                        res.append([mol.GetProp("_Name"), i + 1, # 1-based
-                             int(j), act_tmp])
+                        if act_tmp is None:
+                            res.append([mol.GetProp("_Name"), i + 1, # 1-based
+                                       int(j)])
+                        else:
+                            res.append([mol.GetProp("_Name"), i + 1,  # 1-based
+                                       int(j),
+                                       act_tmp])
 
             else:
                 print("warning: bad labels field_name.SDF was not read")
