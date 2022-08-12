@@ -239,7 +239,7 @@ if __name__ == '__main__':
         required=True,
         help=
         'File name (with full path) for contributions.Should contain at least these columns (named): "molecule", "atom", "contribution". Atom: '
-        '1-based atom numbers; must be consistent with order of atoms in sdf. Molecule: molecule name. Contribtuion: numeric value of atom contributions
+        '1-based atom numbers; must be consistent with order of atoms in sdf. Molecule: molecule name. Contribtuion: numeric value of atom contributions '
     )
     parser.add_argument(
         '--sdf_fname',
